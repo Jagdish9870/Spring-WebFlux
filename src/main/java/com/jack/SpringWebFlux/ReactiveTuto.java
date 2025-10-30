@@ -1,13 +1,16 @@
 package com.jack.SpringWebFlux;
 
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.SignalType;
 import reactor.util.function.Tuple2;
 
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class ReactiveTuto {
     // in case of single data use mono----------
@@ -71,9 +74,73 @@ public class ReactiveTuto {
         Flux<Integer> flux =Flux.range(1,25);
         return flux.collectList();
     }
+    // buffer
     public Flux<List<Integer>> testBuffer(){
         Flux<Integer> flux=Flux.range(1,25).delayElements(Duration.ofMillis(1000));
         return flux.buffer(Duration.ofSeconds(3));
+    }
+    // Collect Map
+    public Mono<Map<Integer,Integer>> testMapCollection(){
+        Flux<Integer> flux=Flux.range(1,20);
+        return flux.collectMap(i->i,i->i*i);
+    }
+// doOnCodes->doOnEach-----------------------------------------------------------------------------------------------------------
+    private Flux<Integer> testDoFunctions() {
+        Flux<Integer> flux = Flux.range(1, 10);
+        return flux.doOnEach(signal -> {
+            if (signal.getType() == SignalType.ON_COMPLETE) {
+                System.out.println("I am done!");
+            } else {
+                System.out.println(signal.get());
+            }
+        });
+    }
+// doOnComplete
+    private Flux<Integer> testDoFunctions2() {
+        Flux<Integer> flux = Flux.range(1, 10);
+        return flux.doOnComplete(() -> System.out.println("I am complete"));
+    }
+//doOnCancel
+    private Flux<Integer> testDoFunctions3() {
+        Flux<Integer> flux = Flux.range(1, 10)
+                .delayElements(Duration.ofSeconds(1));
+        return flux.doOnCancel(() -> System.out.println("Cancelled!"));
+    }
+//Error handling-----------------------------------------------------------------------------------------------------------
+    private Flux<Integer> testErrorHandling() {
+        Flux<Integer> flux = Flux.range(1, 10)
+                .map(integer -> {
+                    if (integer == 5) {
+                        throw new RuntimeException("Unexpected number!");
+                    }
+                    return integer;
+                });
+        return flux
+                .onErrorContinue((throwable, o) -> System.out.println("Don't worry about " + o));
+    }
+
+    private Flux<Integer> testErrorHandling2() {
+        Flux<Integer> flux = Flux.range(1, 10)
+                .map(integer -> {
+                    if (integer == 5) {
+                        throw new RuntimeException("Unexpected number!");
+                    }
+                    return integer;
+                });
+        return flux
+                .onErrorResume(throwable -> Flux.range(100, 5));
+    }
+
+    private Flux<Integer> testErrorHandling3() {
+        Flux<Integer> flux = Flux.range(1, 10)
+                .map(integer -> {
+                    if (integer == 5) {
+                        throw new RuntimeException("Unexpected number!");
+                    }
+                    return integer;
+                });
+        return flux
+                .onErrorMap(throwable -> new UnsupportedOperationException(throwable.getMessage()));
     }
     public static void main(String[] args) throws InterruptedException {
         ReactiveTuto reactiveTuto= new ReactiveTuto();
@@ -90,7 +157,17 @@ public class ReactiveTuto {
 //        reactiveTuto.testConcat().subscribe(System.out::println);
 //        reactiveTuto.testZip().subscribe(System.out::println);
 //        reactiveTuto.monoToList().subscribe(System.out::println);
-        reactiveTuto.testBuffer().subscribe(System.out::println);
-       Thread.sleep(30000);
+//        reactiveTuto.testBuffer().subscribe(System.out::println);
+//       Thread.sleep(30000);
+//        reactiveTuto.testMapCollection().subscribe(System.out::println);
+//        reactiveTuto.testDoFunctions().subscribe(System.out::println);
+//        reactiveTuto.testDoFunctions2().subscribe(System.out::println);
+//        Disposable disposable=reactiveTuto.testDoFunctions3().subscribe(System.out::println);
+//        Thread.sleep(3500);
+//        disposable.dispose();
+//        reactiveTuto.testErrorHandling().subscribe(System.out::println);
+//        reactiveTuto.testErrorHandling2().subscribe(System.out::println);
+//        reactiveTuto.testErrorHandling3().subscribe(System.out::println);
+
     }
 }
